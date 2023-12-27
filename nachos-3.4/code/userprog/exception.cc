@@ -410,57 +410,46 @@ void PrintStringHandler()
 }
 
 void CreateFileHandler(){
-	// Input: Dia chi tu vung nho user cua ten file
-			// Output: -1 = Loi, 0 = Thanh cong
-			// Chuc nang: Tao ra file voi tham so la ten file
-			int virtAddr;
-			char* filename;
-			DEBUG('a', "\n SC_CreateFile call ...");
-			DEBUG('a', "\n Reading virtual address of filename");
+	int virtAddr; 
+	char* filename; 
+	DEBUG('a',"\n SC_Create call ..."); 
+	DEBUG('a',"\n Reading virtual address of filename"); 
+	// Lấy tham số tên tập tin từ thanh ghi r4 
+	virtAddr = machine->ReadRegister(4);
+	DEBUG ('a',"\n Reading filename.");
+	// MaxFileLength là = 32
+	filename = User2System(virtAddr, MaxFileLength + 1); 
+	if (filename == NULL) 
+	{ 
+ 		printf("\n Not enough memory in system"); 
+ 		DEBUG('a',"\n Not enough memory in system"); 
+ 		machine->WriteRegister(2,-1); // trả về lỗi cho chương 
+ 		// trình người dùng 
+ 		delete filename; 
+ 		return; 
+	} 
 
-			virtAddr = machine->ReadRegister(4); //Doc dia chi cua file tu thanh ghi R4
-			DEBUG('a', "\n Reading filename.");
-			
-			//Sao chep khong gian bo nho User sang System, voi do dang toi da la (32 + 1) bytes
-			filename = User2System(virtAddr, MAX_FILE_LENGTH + 1);
-			if (strlen(filename) == 0)
-			{
-				printf("\n File name is not valid");
-				DEBUG('a', "\n File name is not valid");
-				machine->WriteRegister(2, -1); //Return -1 vao thanh ghi R2
-				//IncreasePC();
-				//return;
-				return;
-			}
-			
-			if (filename == NULL)  //Neu khong doc duoc
-			{
-				printf("\n Not enough memory in system");
-				DEBUG('a', "\n Not enough memory in system");
-				machine->WriteRegister(2, -1); //Return -1 vao thanh ghi R2
-				delete filename;
-				//IncreasePC();
-				//return;
-				return;
-			}
-			DEBUG('a', "\n Finish reading filename.");
-			
-			if (!fileSystem->Create(filename, 0)) //Tao file bang ham Create cua fileSystem, tra ve ket qua
-			{
-				//Tao file that bai
-				printf("\n Error create file '%s'", filename);
-				machine->WriteRegister(2, -1);
-				delete filename;
-				//IncreasePC();
-				//return;
-				return;
-			}
-			
-			//Tao file thanh cong
-			machine->WriteRegister(2, 0);
-			delete filename;
-			//IncreasePC(); //Day thanh ghi lui ve sau de tiep tuc ghi
-			//return;
+	DEBUG('a',"\n Finish reading filename."); 
+	//DEBUG(‘a’,"\n File name : '"<<filename<<"'"); 
+	// Create file with size = 0 
+	// Dùng đối tượng fileSystem của lớp OpenFile để tạo file, 
+	// việc tạo file này là sử dụng các thủ tục tạo file của hệ điều 
+	// hành Linux, chúng ta không quản ly trực tiếp các block trên 
+	// đĩa cứng cấp phát cho file, việc quản ly các block của file 
+	// trên ổ đĩa là một đồ án khác 
+
+	if (!fileSystem->Create(filename,0)) 
+	{ 
+		printf("\n Error create file '%s'",filename); 
+ 		machine->WriteRegister(2,-1); 
+ 		delete filename; 
+ 		return;
+	} 
+
+	machine->WriteRegister(2,0); // trả về cho chương trình 
+ 	// người dùng thành công 
+	delete filename; 
+	break; 
 }
 
 void OpenHandler(){
